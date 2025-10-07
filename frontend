@@ -1,0 +1,253 @@
+//EmployeeCard.js
+import React from 'react';
+
+export default function EmployeeCard({ employee }) {
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="avatar">
+          {employee.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+        </div>
+        <div>
+          <h3>{employee.name}</h3>
+          <p className="muted">{employee.role} — {employee.department}</p>
+        </div>
+      </div>
+      <div className="card-body">
+        <p><strong>Email:</strong> {employee.email || '—'}</p>
+        <p><strong>Phone:</strong> {employee.phone || '—'}</p>
+      </div>
+    </div>
+  );
+}
+
+//EmployeeList.js
+import React from 'react';
+import EmployeeCard from './EmployeeCard';
+
+export default function EmployeeList({ employees }) {
+  if (!employees || employees.length === 0)
+    return <p>No employees found.</p>;
+
+  return (
+    <section className="grid">
+      {employees.map(emp => (
+        <EmployeeCard key={emp.id} employee={emp} />
+      ))}
+    </section>
+  );
+}
+
+//Filter.js
+import React, { useEffect, useState } from 'react';
+import api from '../services/api';
+
+export default function Filter({ department, setDepartment, role, setRole }) {
+  const [departments, setDepartments] = useState([]);
+  const [roles, setRoles] = useState([]);
+
+  useEffect(() => {
+    async function fetchMeta() {
+      try {
+        const res = await api.get('/employees');
+        const emps = res.data;
+        setDepartments([...new Set(emps.map(e => e.department))]);
+        setRoles([...new Set(emps.map(e => e.role))]);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchMeta();
+  }, []);
+
+  return (
+    <div className="filters">
+      <select value={department} onChange={(e) => setDepartment(e.target.value)}>
+        <option value="">All Departments</option>
+        {departments.map(d => <option key={d} value={d}>{d}</option>)}
+      </select>
+
+      <select value={role} onChange={(e) => setRole(e.target.value)}>
+        <option value="">All Roles</option>
+        {roles.map(r => <option key={r} value={r}>{r}</option>)}
+      </select>
+
+      <button
+        className="clear-btn"
+        onClick={() => { setDepartment(''); setRole(''); }}
+      >
+        Reset
+      </button>
+    </div>
+  );
+}
+
+//Navbar.js
+import React from 'react';
+import SearchBar from './SearchBar';
+
+export default function Navbar({ search, setSearch }) {
+  return (
+    <header className="nav">
+      <div className="brand">🍔 FoodOrderly — Employee Directory</div>
+      <SearchBar search={search} setSearch={setSearch} />
+    </header>
+  );
+}
+
+//SearchBar.js
+import React from 'react';
+
+export default function SearchBar({ search, setSearch }) {
+  return (
+    <div className="searchbar">
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by name..."
+        aria-label="Search employees by name"
+      />
+      {search && <button onClick={() => setSearch('')}>Clear</button>}
+    </div>
+  );
+}
+
+//App.js
+import React, { useEffect, useState } from 'react';
+import Navbar from './components/Navbar';
+import Filter from './components/Filter';
+import EmployeeList from './components/EmployeeList';
+import api from './services/api';
+import './styles.css';
+
+function App() {
+  const [employees, setEmployees] = useState([]);
+  const [search, setSearch] = useState('');
+  const [department, setDepartment] = useState('');
+  const [role, setRole] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const fetchEmployees = async (params = {}) => {
+    setLoading(true);
+    try {
+      const res = await api.get('/employees', { params });
+      setEmployees(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchEmployees(); }, []);
+  useEffect(() => {
+    const params = {};
+    if (search) params.name = search;
+    if (department) params.department = department;
+    if (role) params.role = role;
+    fetchEmployees(params);
+  }, [search, department, role]);
+
+  return (
+    <div>
+      <Navbar search={search} setSearch={setSearch} />
+      <main className="container">
+        <Filter
+          department={department} setDepartment={setDepartment}
+          role={role} setRole={setRole}
+        />
+        {loading ? <p>Loading...</p> : <EmployeeList employees={employees} />}
+      </main>
+    </div>
+  );
+}
+
+export default App;
+
+// index.js
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+
+✅ index.css
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+✅ styles.css
+:root {
+  --max-w: 1100px;
+  --accent: #0b71ff;
+  --accent-light: #e6f0ff;
+  --muted: #6b7280;
+  --card-radius: 16px;
+  --gradient-1: linear-gradient(135deg, #ff9a9e, #fad0c4);
+  --gradient-2: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+  --gradient-3: linear-gradient(135deg, #fbc2eb, #a6c1ee);
+  --gradient-4: linear-gradient(135deg, #84fab0, #8fd3f4);
+  --gradient-5: linear-gradient(135deg, #fccb90, #d57eeb);
+}
+
+/* Global resets */
+* { box-sizing: border-box; }
+body { font-family: 'Inter', Arial, Helvetica, sans-serif; margin: 0; padding: 0; background: #f9fafc; color: #111; line-height: 1.5; }
+
+/* Navbar */
+.nav { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: linear-gradient(90deg, #0b71ff, #4f46e5); color: white; box-shadow: 0 3px 12px rgba(0,0,0,0.12); position: sticky; top: 0; z-index: 10; }
+.brand { font-weight: 700; font-size: 1.2rem; }
+
+/* Container */
+.container { max-width: var(--max-w); margin: 20px auto; padding: 0 16px; }
+
+/* Searchbar */
+.searchbar { display: flex; gap: 8px; align-items: center; }
+.searchbar input { padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; min-width: 220px; font-size: 14px; transition: all 0.2s; }
+.searchbar input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-light); }
+.searchbar button { background: white; color: #0b71ff; border: 0; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.25s; }
+.searchbar button:hover { background: #e6f0ff; transform: translateY(-2px); }
+
+/* Filters */
+.filters { display: flex; gap: 12px; align-items: center; margin: 16px 0; flex-wrap: wrap; }
+.filters select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: white; transition: all 0.2s; }
+.filters select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-light); }
+.clear-btn { background: #fff; border: 1px solid #ddd; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+.clear-btn:hover { background: #f3f4f6; border-color: var(--accent); color: var(--accent); }
+
+/* Grid & Cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px; }
+.card { border-radius: var(--card-radius); padding: 18px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); transition: transform 0.25s ease, box-shadow 0.25s ease; overflow: hidden; }
+.card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 10px 24px rgba(0,0,0,0.12); }
+.card:nth-child(5n+1) { background: #fff5f6; }
+.card:nth-child(5n+2) { background: #f2f8ff; }
+.card:nth-child(5n+3) { background: #fdf5ff; }
+.card:nth-child(5n+4) { background: #f3fdf9; }
+.card:nth-child(5n+5) { background: #fffaf4; }
+.card-head { display: flex; gap: 12px; align-items: center; }
+.avatar { width: 56px; height: 56px; border-radius: 50%; color: white; font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+.card:nth-child(5n+1) .avatar { background: var(--gradient-1); }
+.card:nth-child(5n+2) .avatar { background: var(--gradient-2); }
+.card:nth-child(5n+3) .avatar { background: var(--gradient-3); }
+.card:nth-child(5n+4) .avatar { background: var(--gradient-4); }
+.card:nth-child(5n+5) .avatar { background: var(--gradient-5); }
+.muted { color: var(--muted); margin: 0; font-size: 14px; }
+.card-body { margin-top: 12px; border-top: 1px dashed #ddd; padding-top: 12px; font-size: 14px; color: #374151; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .nav { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .searchbar input { min-width: 150px; flex: 1; }
+  .filters { flex-direction: column; align-items: stretch; }
+}
