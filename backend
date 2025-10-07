@@ -1,0 +1,124 @@
+// server.js
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const PORT = 5000;
+const DATA_FILE = "./employees.json";
+
+// ✅ GET all employees (with optional filters)
+app.get("/employees", (req, res) => {
+  fs.readFile(DATA_FILE, "utf8", (err, data) => {
+    if (err) return res.status(500).json({ error: "Error reading file" });
+
+    let employees = JSON.parse(data);
+    const { name, department, role } = req.query;
+
+    // 🔍 Filter by name
+    if (name) {
+      employees = employees.filter(emp =>
+        emp.name.toLowerCase().includes(name.toLowerCase())
+      );
+    }
+
+    // 🔍 Filter by department
+    if (department) {
+      employees = employees.filter(emp => emp.department === department);
+    }
+
+    // 🔍 Filter by role
+    if (role) {
+      employees = employees.filter(emp => emp.role === role);
+    }
+
+    res.json(employees);
+  });
+});
+
+// ✅ Add a new employee (optional)
+app.post("/employees", (req, res) => {
+  const newEmployee = req.body;
+  fs.readFile(DATA_FILE, "utf8", (err, data) => {
+    if (err) return res.status(500).json({ error: "Error reading file" });
+
+    const employees = JSON.parse(data);
+    employees.push(newEmployee);
+
+    fs.writeFile(DATA_FILE, JSON.stringify(employees, null, 2), err => {
+      if (err) return res.status(500).json({ error: "Error saving data" });
+      res.status(201).json(newEmployee);
+    });
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
+
+
+
+// employees.json
+[
+  {
+    "id": "E101",
+    "name": "John Doe",
+    "role": "Software Engineer",
+    "department": "IT",
+    "email": "john.doe@company.com",
+    "phone": "+91 9876543210"
+  },
+  {
+    "id": "E102",
+    "name": "Jane Smith",
+    "role": "HR Manager",
+    "department": "Human Resources",
+    "email": "jane.smith@company.com",
+    "phone": "+91 8765432109"
+  },
+  {
+    "id": "E103",
+    "name": "Ravi Kumar",
+    "role": "Sales Executive",
+    "department": "Sales",
+    "email": "ravi.kumar@company.com",
+    "phone": "+91 9988776655"
+  },
+  {
+    "id": "E104",
+    "name": "Priya Patel",
+    "role": "Graphic Designer",
+    "department": "Design",
+    "email": "priya.patel@company.com",
+    "phone": "+91 7788996655"
+  },
+  {
+    "id": "E105",
+    "name": "David Miller",
+    "role": "Product Manager",
+    "department": "Management",
+    "email": "david.miller@company.com",
+    "phone": "+91 9090909090"
+  }
+]
+
+
+// package.json
+{
+  "name": "employee-directory-backend",
+  "version": "1.0.0",
+  "description": "Simple Express backend for Employee Directory",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}
+
+
